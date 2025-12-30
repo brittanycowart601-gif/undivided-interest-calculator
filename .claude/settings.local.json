@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run test:run:*)",
+      "Bash(npx skills-installer:*)",
+      "Skill(frontend-design)",
+      "Skill(frontend-design:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx wrangler pages deploy:*)",
+      "Bash(npx claude-plugins install:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
