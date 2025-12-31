@@ -11,7 +11,6 @@ import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
 
 import { OwnerNode } from './OwnerNode';
-import { CustomEdge } from './CustomEdge';
 import { AddGranteeModal } from './modals/AddGranteeModal';
 import { AddTransferModal } from './modals/AddTransferModal';
 import { EditOwnerModal } from './modals/EditOwnerModal';
@@ -30,7 +29,6 @@ import { generateId, toTitleCase, parsePercentageInput, formatFraction, getPerso
 import { loadFromStorage, saveToStorage } from '../utils/storage';
 
 const nodeTypes = { ownerNode: OwnerNode };
-const edgeTypes = { custom: CustomEdge };
 
 export function FlowChart() {
   const reactFlowWrapper = useRef(null);
@@ -574,8 +572,26 @@ export function FlowChart() {
           target: owner.id,
           sourceHandle: null,
           targetHandle: null,
-          type: 'custom',
+          type: 'smoothstep',
+          pathOptions: {
+            offset: 40,
+            borderRadius: 16
+          },
           label: label,
+          labelStyle: {
+            fill: 'var(--text-secondary)',
+            fontWeight: 500,
+            fontSize: 12,
+            fontFamily: 'var(--font-mono)'
+          },
+          labelBgStyle: {
+            fill: 'var(--white)',
+            stroke: 'var(--slate-200)',
+            strokeWidth: 1,
+            rx: 6,
+            ry: 6
+          },
+          labelBgPadding: [6, 8],
           markerEnd: {
             type: MarkerType.ArrowClosed,
             color: edgeColor,
@@ -993,7 +1009,6 @@ export function FlowChart() {
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
             onNodeDragStop={onNodeDragStop}
             fitView
             minZoom={0.2}
