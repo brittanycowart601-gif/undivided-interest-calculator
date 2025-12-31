@@ -23,6 +23,7 @@ export function AddGranteeModal({
   const [fillColor, setFillColor] = useState(null);
   const [borderColor, setBorderColor] = useState(null);
   const [lineColor, setLineColor] = useState(null);
+  const [relationship, setRelationship] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -38,6 +39,7 @@ export function AddGranteeModal({
       setFillColor(null);
       setBorderColor(null);
       setLineColor(null);
+      setRelationship('');
     }
   }, [isOpen, parentOwner]);
 
@@ -50,7 +52,8 @@ export function AddGranteeModal({
       newDocForm,
       fillColor,
       borderColor,
-      lineColor
+      lineColor,
+      relationship
     });
   };
 
@@ -88,6 +91,16 @@ export function AddGranteeModal({
           value={percentage}
           onChange={(e) => setPercentage(e.target.value)}
           placeholder="1/4, 0.25, or 25"
+          style={STYLES.input.base}
+        />
+      </FormField>
+
+      <FormField label="Relationship (optional)">
+        <input
+          type="text"
+          value={relationship}
+          onChange={(e) => setRelationship(e.target.value)}
+          placeholder="Husband of, Wife of, Child of..."
           style={STYLES.input.base}
         />
       </FormField>

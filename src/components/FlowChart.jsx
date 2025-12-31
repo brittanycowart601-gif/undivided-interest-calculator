@@ -148,7 +148,7 @@ export function FlowChart() {
   }, []);
 
   // Form submission handlers
-  const handleSubmitGrantee = useCallback(({ selectedPersonId, newGranteeName, percentage, selectedDocumentId, newDocForm, fillColor, borderColor, lineColor }) => {
+  const handleSubmitGrantee = useCallback(({ selectedPersonId, newGranteeName, percentage, selectedDocumentId, newDocForm, fillColor, borderColor, lineColor, relationship }) => {
     if (!addGranteeParentId || !percentage) return;
     if (selectedPersonId === 'new' && !newGranteeName.trim()) return;
 
@@ -182,7 +182,7 @@ export function FlowChart() {
 
     if (existingNode) {
       // Add transfer to existing node (don't change originalLevel - it stays on its original row)
-      // Also update colors if provided
+      // Also update colors and relationship if provided
       setOwners(prev => prev.map(o =>
         o.id === existingNode.id
           ? {
@@ -190,7 +190,8 @@ export function FlowChart() {
               transfers: [...o.transfers, { fromId: addGranteeParentId, percentage: pct, documentId: docId }],
               color: fillColor || o.color,
               borderColor: borderColor || o.borderColor,
-              lineColor: lineColor || o.lineColor
+              lineColor: lineColor || o.lineColor,
+              relationship: relationship || o.relationship
             }
           : o
       ));
@@ -207,7 +208,8 @@ export function FlowChart() {
         originalLevel: parentLevel + 1,
         color: fillColor || null,
         borderColor: borderColor || null,
-        lineColor: lineColor || null
+        lineColor: lineColor || null,
+        relationship: relationship || ''
       }]);
     }
 

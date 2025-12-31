@@ -161,7 +161,7 @@ export function EditOwnerModal({ isOpen, owner, persons, owners, documents, onSu
                       <option value="">-- No Document --</option>
                       {documents.map(d => (
                         <option key={d.id} value={d.id}>
-                          {getDocumentLabel(d)}
+                          {getDocumentLabel(d, null)}
                         </option>
                       ))}
                     </select>
