@@ -39,14 +39,12 @@ export function useOwnerCalculations(owners) {
   }, [getAllocatedPercentage]);
 
   const getLeafOwners = useCallback(() => {
-    // Return all owners who have remaining interest (current ownership > 0)
+    // Return all owners who have remaining/current interest (current ownership > 0)
     // This includes:
     // 1. Owners with no children (terminal nodes)
     // 2. Owners who transferred only PART of their interest (still own the remainder)
+    // 3. Root nodes who didn't convey 100% of their interest
     return owners.filter(o => {
-      // Skip root nodes (they have no transfers - they ARE the source)
-      if (o.transfers.length === 0) return false;
-
       // Calculate how much they've allocated to children
       const children = getChildren(o.id);
       const allocatedOut = children.reduce((allocated, child) => {
@@ -56,7 +54,7 @@ export function useOwnerCalculations(owners) {
         return allocated + fromThisOwner;
       }, 0);
 
-      // They're a "leaf" owner if they haven't transferred out 100%
+      // They're a current owner if they haven't transferred out 100%
       return allocatedOut < 99.99; // Use threshold for floating point
     });
   }, [owners, getChildren]);
