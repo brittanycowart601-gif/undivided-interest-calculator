@@ -56,6 +56,9 @@ export function FlowChart() {
   // Export state
   const [isExporting, setIsExporting] = useState(false);
 
+  // Layout direction state
+  const [layoutDirection, setLayoutDirection] = useState(savedData?.layoutDirection || 'vertical');
+
   // Custom hooks for calculations
   const {
     calculateTotalPercentage,
@@ -66,7 +69,7 @@ export function FlowChart() {
     getNodeLevel
   } = useOwnerCalculations(owners);
 
-  const calculateAutoLayout = useAutoLayout(owners, getChildren);
+  const calculateAutoLayout = useAutoLayout(owners, getChildren, layoutDirection);
 
   // Derived data
   const getDocumentGrantees = useCallback((docId) => {
@@ -95,8 +98,8 @@ export function FlowChart() {
 
   // Auto-save effect
   useEffect(() => {
-    saveToStorage({ owners, persons, documents, projectName, nodePositions });
-  }, [owners, persons, documents, projectName, nodePositions]);
+    saveToStorage({ owners, persons, documents, projectName, nodePositions, layoutDirection });
+  }, [owners, persons, documents, projectName, nodePositions, layoutDirection]);
 
   // Entity management functions
   const addPerson = useCallback((name) => {
@@ -669,6 +672,22 @@ export function FlowChart() {
     </svg>
   );
 
+  const IconVertical = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="1" width="6" height="4" rx="1" />
+      <rect x="5" y="11" width="6" height="4" rx="1" />
+      <path d="M8 5v6M6 9l2 2 2-2" />
+    </svg>
+  );
+
+  const IconHorizontal = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="1" y="5" width="4" height="6" rx="1" />
+      <rect x="11" y="5" width="4" height="6" rx="1" />
+      <path d="M5 8h6M9 6l2 2-2 2" />
+    </svg>
+  );
+
   const IconTrash = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M2 4h12M5.5 4V2.5a1 1 0 011-1h3a1 1 0 011 1V4M6.5 7v5M9.5 7v5" />
@@ -914,6 +933,40 @@ export function FlowChart() {
               }}
             >
               <IconLayout /> Auto Layout
+            </button>
+            <button
+              onClick={() => {
+                const newDirection = layoutDirection === 'vertical' ? 'horizontal' : 'vertical';
+                setLayoutDirection(newDirection);
+                // Auto-apply layout after direction change
+                setTimeout(() => {
+                  setNodePositions(calculateAutoLayout());
+                  setTimeout(() => fitView({ padding: 0.2 }), 100);
+                }, 50);
+              }}
+              style={{
+                background: 'var(--white)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--slate-200)',
+                padding: 'var(--space-2) var(--space-4)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 'var(--space-2)',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent-secondary)';
+                e.currentTarget.style.color = 'var(--accent-secondary)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--slate-200)';
+                e.currentTarget.style.color = 'var(--text-primary)';
+              }}
+              title={`Switch to ${layoutDirection === 'vertical' ? 'horizontal' : 'vertical'} layout`}
+            >
+              {layoutDirection === 'vertical' ? <IconHorizontal /> : <IconVertical />}
+              {layoutDirection === 'vertical' ? 'Horizontal' : 'Vertical'}
             </button>
             <button
               onClick={saveProject}
