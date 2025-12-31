@@ -343,16 +343,50 @@ export function FlowChart() {
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
+      // Legal paper size in pixels at 72 DPI: 8.5" x 14" = 612 x 1008
+      // We use landscape for better graph fit: 14" x 8.5" = 1008 x 612
+      const legalWidth = 1008;
+      const legalHeight = 612;
+
       const canvas = await html2canvas(reactFlowWrapper.current, {
         scale: 2,
-        backgroundColor: '#fff'
+        backgroundColor: '#fff',
+        width: reactFlowWrapper.current.scrollWidth,
+        height: reactFlowWrapper.current.scrollHeight,
+        windowWidth: reactFlowWrapper.current.scrollWidth,
+        windowHeight: reactFlowWrapper.current.scrollHeight
       });
+
+      // Always use legal size landscape
       const pdf = new jsPDF({
-        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
+        orientation: 'landscape',
+        unit: 'pt',
+        format: 'legal'
       });
-      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+
+      // Scale image to fit legal page while maintaining aspect ratio
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 20;
+      const availableWidth = pageWidth - (margin * 2);
+      const availableHeight = pageHeight - (margin * 2);
+
+      const imgRatio = canvas.width / canvas.height;
+      const pageRatio = availableWidth / availableHeight;
+
+      let imgWidth, imgHeight;
+      if (imgRatio > pageRatio) {
+        imgWidth = availableWidth;
+        imgHeight = availableWidth / imgRatio;
+      } else {
+        imgHeight = availableHeight;
+        imgWidth = availableHeight * imgRatio;
+      }
+
+      const x = margin + (availableWidth - imgWidth) / 2;
+      const y = margin + (availableHeight - imgHeight) / 2;
+
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, imgWidth, imgHeight);
       pdf.save(`${projectName.replace(/[^a-z0-9]/gi, '_')}_chart.pdf`);
     } catch (e) {
       console.error('PDF export failed:', e);
@@ -527,8 +561,8 @@ export function FlowChart() {
         // Use accent colors for edges
         const edgeColor = transfer.edgeColor || sourceOwner?.lineColor || 'var(--accent-primary)';
 
-        // Build label with document info: Inst# or Bk/Pg
-        let label = doc ? getDocumentLabel(doc) : undefined;
+        // Build label with document info (book/page) and relationship
+        let label = getDocumentLabel(doc, owner.relationship) || undefined;
 
         edgeList.push({
           id: `e-${transfer.fromId}-${owner.id}-${idx}`,
@@ -820,46 +854,15 @@ export function FlowChart() {
         <div className="no-print" style={{
           background: 'var(--white)',
           borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-4) var(--space-6)',
+          padding: 'var(--space-3) var(--space-6)',
           marginBottom: 'var(--space-4)',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)',
+          gap: 'var(--space-2)',
           boxShadow: 'var(--shadow-sm)',
           border: '1px solid var(--slate-200)',
         }}>
-          {/* Legend */}
-          <div style={{
-            display: 'flex',
-            gap: 'var(--space-6)',
-            fontSize: '0.8125rem',
-            color: 'var(--text-secondary)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <div style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                border: '2px solid var(--accent-primary)',
-                boxShadow: '0 0 8px rgba(99, 102, 241, 0.3)',
-              }} />
-              <span>Same Person (Multiple Sources)</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <svg width="24" height="2">
-                <line x1="0" y1="1" x2="24" y2="1" stroke="var(--accent-primary)" strokeWidth="2" />
-              </svg>
-              <span>Transfer Chain</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div style={{
-            display: 'flex',
-            gap: 'var(--space-2)',
-          }}>
             <button
               onClick={() => setShowAddNode(true)}
               style={{
@@ -985,7 +988,6 @@ export function FlowChart() {
             >
               <IconTrash /> Clear
             </button>
-          </div>
         </div>
 
         {/* Canvas */}

@@ -30,12 +30,16 @@ export function AddGranteeModal({
       setNewGranteeName('');
       setPercentage('');
       setSelectedDocumentId('new');
-      setNewDocForm(EMPTY_DOC_FORM);
+      // Auto-fill grantor from parent owner name
+      setNewDocForm({
+        ...EMPTY_DOC_FORM,
+        grantor: parentOwner?.name || parentOwner?.nameAsWritten || ''
+      });
       setFillColor(null);
       setBorderColor(null);
       setLineColor(null);
     }
-  }, [isOpen]);
+  }, [isOpen, parentOwner]);
 
   const handleSubmit = () => {
     onSubmit({

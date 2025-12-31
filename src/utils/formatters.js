@@ -67,10 +67,26 @@ export const getPersonColor = (personId, persons) => {
   return PERSON_COLORS[index % PERSON_COLORS.length];
 };
 
-export const getDocumentLabel = (doc) => {
-  if (!doc) return '';
-  if (doc.instrumentNumber) return `Inst: ${doc.instrumentNumber}`;
-  if (doc.book || doc.page) return `Bk ${doc.book || '?'} Pg ${doc.page || '?'}`;
-  if (doc.documentTitle) return doc.documentTitle.substring(0, 15);
-  return 'Doc';
+export const getDocumentLabel = (doc, relationship) => {
+  if (!doc && !relationship) return '';
+
+  const parts = [];
+
+  // Add book/page in (book/page) format
+  if (doc) {
+    if (doc.book && doc.page) {
+      parts.push(`(${doc.book}/${doc.page})`);
+    } else if (doc.instrumentNumber) {
+      parts.push(doc.instrumentNumber);
+    } else if (doc.documentTitle) {
+      parts.push(doc.documentTitle.substring(0, 12));
+    }
+  }
+
+  // Add relationship if present
+  if (relationship) {
+    parts.push(relationship);
+  }
+
+  return parts.join(' ');
 };
