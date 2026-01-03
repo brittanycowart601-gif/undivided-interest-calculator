@@ -21,7 +21,8 @@
       "Bash(git branch:*)",
       "Bash(git push:*)",
       "Bash(git commit:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(npx wrangler pages deployment list:*)"
     ]
   }
 }

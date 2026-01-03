@@ -3,7 +3,8 @@ import ReactFlow, {
   Background,
   Controls,
   MarkerType,
-  useReactFlow
+  useReactFlow,
+  getRectOfNodes
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import html2canvas from 'html2canvas';
@@ -58,6 +59,9 @@ export function FlowChart() {
 
   // Layout direction state
   const [layoutDirection, setLayoutDirection] = useState(savedData?.layoutDirection || 'vertical');
+
+  // Header/Toolbar visibility state
+  const [showControls, setShowControls] = useState(true);
 
   // Custom hooks for calculations
   const {
@@ -348,18 +352,17 @@ export function FlowChart() {
   const exportToPDF = async () => {
     setIsExporting(true);
     try {
-      // Legal paper size in pixels at 72 DPI: 8.5" x 14" = 612 x 1008
-      // We use landscape for better graph fit: 14" x 8.5" = 1008 x 612
-      const legalWidth = 1008;
-      const legalHeight = 612;
+      // First, fit all nodes in view so the entire chart is visible
+      await fitView({ padding: 0.1, duration: 0 });
+
+      // Wait for the view to settle
+      await new Promise(resolve => setTimeout(resolve, 300));
 
       const canvas = await html2canvas(reactFlowWrapper.current, {
         scale: 2,
         backgroundColor: '#fff',
-        width: reactFlowWrapper.current.scrollWidth,
-        height: reactFlowWrapper.current.scrollHeight,
-        windowWidth: reactFlowWrapper.current.scrollWidth,
-        windowHeight: reactFlowWrapper.current.scrollHeight
+        useCORS: true,
+        logging: false
       });
 
       // Always use legal size landscape
@@ -575,11 +578,7 @@ export function FlowChart() {
           target: owner.id,
           sourceHandle: null,
           targetHandle: null,
-          type: 'smoothstep',
-          pathOptions: {
-            offset: 40,
-            borderRadius: 16
-          },
+          type: 'step',
           label: label,
           labelStyle: {
             fill: 'var(--text-secondary)',
@@ -702,6 +701,18 @@ export function FlowChart() {
     </svg>
   );
 
+  const IconChevronDown = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 6l4 4 4-4" />
+    </svg>
+  );
+
+  const IconChevronUp = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 10l4-4 4 4" />
+    </svg>
+  );
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -712,200 +723,237 @@ export function FlowChart() {
         margin: '0 auto',
         padding: 'var(--space-6)',
       }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--surface-dark)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-6) var(--space-8)',
-          marginBottom: 'var(--space-4)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: 'var(--space-4)',
-          boxShadow: 'var(--shadow-xl)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
-          {/* Gradient accent line */}
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            height: '3px',
-            background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary))',
-          }} />
-
-          <div>
-            <h1 style={{
-              fontSize: '1.5rem',
-              fontWeight: '700',
-              color: 'var(--white)',
-              letterSpacing: '-0.02em',
-              marginBottom: 'var(--space-1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 'var(--space-3)',
-            }}>
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '36px',
-                height: '36px',
-                borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-                fontSize: '1rem',
-              }}>
-                %
-              </span>
-              Undivided Interest Calculator
-            </h1>
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              placeholder="Project name..."
-              className="no-print"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                color: 'var(--white)',
-                padding: 'var(--space-2) var(--space-4)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.9375rem',
-                width: '280px',
-                transition: 'all var(--transition-fast)',
-              }}
-              onFocus={(e) => {
-                e.target.style.background = 'rgba(255,255,255,0.12)';
-                e.target.style.borderColor = 'var(--accent-primary)';
-              }}
-              onBlur={(e) => {
-                e.target.style.background = 'rgba(255,255,255,0.08)';
-                e.target.style.borderColor = 'rgba(255,255,255,0.12)';
-              }}
-            />
-          </div>
-
-          <div className="no-print" style={{
-            display: 'flex',
-            gap: 'var(--space-2)',
-          }}>
-            <button
-              onClick={() => setShowPersonManager(true)}
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                color: 'var(--white)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                padding: 'var(--space-2) var(--space-4)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              }}
-            >
-              <IconUsers /> Persons
-            </button>
-            <button
-              onClick={() => setShowDocumentManager(true)}
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                color: 'var(--white)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                padding: 'var(--space-2) var(--space-4)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: 'pointer',
-                transition: 'all var(--transition-fast)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              }}
-            >
-              <IconFile /> Documents
-            </button>
-            <button
-              onClick={exportToPDF}
-              disabled={isExporting}
-              style={{
-                background: 'var(--accent-primary)',
-                color: 'var(--white)',
-                border: 'none',
-                padding: 'var(--space-2) var(--space-4)',
-                borderRadius: 'var(--radius-sm)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 'var(--space-2)',
-                cursor: isExporting ? 'wait' : 'pointer',
-                transition: 'all var(--transition-fast)',
-                boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
-              }}
-              onMouseEnter={(e) => {
-                if (!isExporting) {
-                  e.currentTarget.style.background = 'var(--accent-primary-dark)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--accent-primary)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              <IconPDF /> {isExporting ? 'Exporting...' : 'Export PDF'}
-            </button>
-          </div>
-        </header>
-
-        {/* Toolbar */}
+        {/* Toggle button - always visible */}
         <div className="no-print" style={{
-          background: 'var(--white)',
-          borderRadius: 'var(--radius-lg)',
-          padding: 'var(--space-3) var(--space-6)',
-          marginBottom: 'var(--space-4)',
           display: 'flex',
           justifyContent: 'flex-end',
-          alignItems: 'center',
-          gap: 'var(--space-2)',
-          boxShadow: 'var(--shadow-sm)',
-          border: '1px solid var(--slate-200)',
+          marginBottom: 'var(--space-2)',
         }}>
+          <button
+            onClick={() => setShowControls(!showControls)}
+            style={{
+              background: 'var(--white)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--slate-200)',
+              padding: '4px 10px',
+              borderRadius: 'var(--radius-sm)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: '500',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'var(--accent-primary)';
+              e.currentTarget.style.borderColor = 'var(--accent-primary)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'var(--text-secondary)';
+              e.currentTarget.style.borderColor = 'var(--slate-200)';
+            }}
+            title={showControls ? 'Hide controls' : 'Show controls'}
+          >
+            {showControls ? <IconChevronUp /> : <IconChevronDown />}
+            {showControls ? 'Hide Controls' : 'Show Controls'}
+          </button>
+        </div>
+
+        {/* Header + Toolbar - conditionally rendered */}
+        {showControls && (
+          <>
+            {/* Header */}
+            <header style={{
+              background: 'var(--surface-dark)',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-3) var(--space-5)',
+              marginBottom: 'var(--space-2)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 'var(--space-3)',
+              boxShadow: 'var(--shadow-md)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}>
+              {/* Gradient accent line */}
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '2px',
+                background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-tertiary))',
+              }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+                <h1 style={{
+                  fontSize: '1.125rem',
+                  fontWeight: '700',
+                  color: 'var(--white)',
+                  letterSpacing: '-0.02em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'var(--space-2)',
+                }}>
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
+                    fontSize: '0.875rem',
+                  }}>
+                    %
+                  </span>
+                  Undivided Interest
+                </h1>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="Project name..."
+                  className="no-print"
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: 'var(--white)',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.8125rem',
+                    width: '200px',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.background = 'rgba(255,255,255,0.12)';
+                    e.target.style.borderColor = 'var(--accent-primary)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.background = 'rgba(255,255,255,0.08)';
+                    e.target.style.borderColor = 'rgba(255,255,255,0.12)';
+                  }}
+                />
+              </div>
+
+              <div className="no-print" style={{
+                display: 'flex',
+                gap: 'var(--space-2)',
+              }}>
+                <button
+                  onClick={() => setShowPersonManager(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    color: 'var(--white)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                >
+                  <IconUsers /> Persons
+                </button>
+                <button
+                  onClick={() => setShowDocumentManager(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    color: 'var(--white)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    transition: 'all var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                >
+                  <IconFile /> Docs
+                </button>
+                <button
+                  onClick={exportToPDF}
+                  disabled={isExporting}
+                  style={{
+                    background: 'var(--accent-primary)',
+                    color: 'var(--white)',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: 'var(--radius-sm)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    cursor: isExporting ? 'wait' : 'pointer',
+                    fontSize: '0.8125rem',
+                    transition: 'all var(--transition-fast)',
+                    boxShadow: '0 2px 8px rgba(99, 102, 241, 0.3)',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isExporting) {
+                      e.currentTarget.style.background = 'var(--accent-primary-dark)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--accent-primary)';
+                  }}
+                >
+                  <IconPDF /> {isExporting ? 'Exporting...' : 'PDF'}
+                </button>
+              </div>
+            </header>
+
+            {/* Toolbar */}
+            <div className="no-print" style={{
+              background: 'var(--white)',
+              borderRadius: 'var(--radius-md)',
+              padding: '6px var(--space-4)',
+              marginBottom: 'var(--space-2)',
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: 'var(--space-2)',
+              boxShadow: 'var(--shadow-sm)',
+              border: '1px solid var(--slate-200)',
+            }}>
             <button
               onClick={() => setShowAddNode(true)}
               style={{
                 background: 'var(--accent-primary)',
                 color: 'var(--white)',
                 border: 'none',
-                padding: 'var(--space-2) var(--space-4)',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
+                gap: '4px',
                 cursor: 'pointer',
                 fontWeight: '500',
-                boxShadow: 'var(--shadow-sm)',
+                fontSize: '0.8125rem',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = 'var(--accent-primary-dark)';
-                e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'var(--accent-primary)';
-                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
               <IconPlus /> Add Origin
@@ -916,12 +964,13 @@ export function FlowChart() {
                 background: 'var(--white)',
                 color: 'var(--text-primary)',
                 border: '1px solid var(--slate-200)',
-                padding: 'var(--space-2) var(--space-4)',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
+                gap: '4px',
                 cursor: 'pointer',
+                fontSize: '0.8125rem',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--accent-primary)';
@@ -932,13 +981,12 @@ export function FlowChart() {
                 e.currentTarget.style.color = 'var(--text-primary)';
               }}
             >
-              <IconLayout /> Auto Layout
+              <IconLayout /> Layout
             </button>
             <button
               onClick={() => {
                 const newDirection = layoutDirection === 'vertical' ? 'horizontal' : 'vertical';
                 setLayoutDirection(newDirection);
-                // Auto-apply layout after direction change
                 setTimeout(() => {
                   setNodePositions(calculateAutoLayout());
                   setTimeout(() => fitView({ padding: 0.2 }), 100);
@@ -948,12 +996,13 @@ export function FlowChart() {
                 background: 'var(--white)',
                 color: 'var(--text-primary)',
                 border: '1px solid var(--slate-200)',
-                padding: 'var(--space-2) var(--space-4)',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
+                gap: '4px',
                 cursor: 'pointer',
+                fontSize: '0.8125rem',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--accent-secondary)';
@@ -966,7 +1015,6 @@ export function FlowChart() {
               title={`Switch to ${layoutDirection === 'vertical' ? 'horizontal' : 'vertical'} layout`}
             >
               {layoutDirection === 'vertical' ? <IconHorizontal /> : <IconVertical />}
-              {layoutDirection === 'vertical' ? 'Horizontal' : 'Vertical'}
             </button>
             <button
               onClick={saveProject}
@@ -974,12 +1022,13 @@ export function FlowChart() {
                 background: 'var(--white)',
                 color: 'var(--text-primary)',
                 border: '1px solid var(--slate-200)',
-                padding: 'var(--space-2) var(--space-4)',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
+                gap: '4px',
                 cursor: 'pointer',
+                fontSize: '0.8125rem',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--accent-primary)';
@@ -997,15 +1046,13 @@ export function FlowChart() {
                 background: 'var(--white)',
                 color: 'var(--text-primary)',
                 border: '1px solid var(--slate-200)',
-                padding: 'var(--space-2) var(--space-4)',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
+                gap: '4px',
                 cursor: 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: '500',
-                transition: 'all var(--transition-fast)',
+                fontSize: '0.8125rem',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--accent-primary)';
@@ -1025,12 +1072,13 @@ export function FlowChart() {
                 background: 'var(--white)',
                 color: 'var(--text-tertiary)',
                 border: '1px solid var(--slate-200)',
-                padding: 'var(--space-2) var(--space-4)',
+                padding: '4px 10px',
                 borderRadius: 'var(--radius-sm)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--space-2)',
+                gap: '4px',
                 cursor: 'pointer',
+                fontSize: '0.8125rem',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--error)';
@@ -1043,7 +1091,9 @@ export function FlowChart() {
             >
               <IconTrash /> Clear
             </button>
-        </div>
+            </div>
+          </>
+        )}
 
         {/* Canvas */}
         <div
